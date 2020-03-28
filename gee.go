@@ -10,20 +10,19 @@ import (
 	"net/http"
 )
 
-type HandlerFunc func(w http.ResponseWriter, r *http.Request)
+type HandlerFunc func(c *Context)
 
 type Engine struct {
-	router map[string]HandlerFunc
+	router *router
 }
 
 func New() *Engine {
-	return &Engine{router: make(map[string]HandlerFunc)}
+	return &Engine{router: newRouter()}
 }
 
 func (e *Engine) addRoute(method, pattern string, handler HandlerFunc) {
-	key := method + "-" + pattern
 	// TODO: 重复路由判断？
-	e.router[key] = handler // 赋值
+	e.router.addRoute(method, pattern, handler)
 }
 
 func (e *Engine) GET(pattern string, handler HandlerFunc) {
@@ -35,16 +34,12 @@ func (e *Engine) POST(pattern string, handler HandlerFunc) {
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	key := r.Method + "-" + r.URL.Path
-	if handler, ok := e.router[key]; ok {
-		handler(w, r)
-	} else {
-		fmt.Fprintf(w, "404 Not Found: %s\n", r.URL)
-	}
+	c := newContext(w, r)
+	e.router.handle(c)
 }
 
 func (e *Engine) Run(addr string) (err error) {
-	for k, v := range e.router {
+	for k, v := range e.router.handlers {
 		fmt.Println(k, v)
 	}
 	return http.ListenAndServe(addr, e)
