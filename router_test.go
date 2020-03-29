@@ -22,7 +22,6 @@ func newTestRouter() *router {
 	return r
 }
 
-
 func TestParsePattern(t *testing.T) {
 	ok := reflect.DeepEqual(parsePattern("/p/:name"), []string{"p", ":name"})
 	ok = ok && reflect.DeepEqual(parsePattern("/p/*"), []string{"p", "*"})
