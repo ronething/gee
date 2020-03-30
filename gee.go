@@ -8,6 +8,7 @@ package gee
 import (
 	"log"
 	"net/http"
+	"path"
 	"strings"
 )
 
@@ -79,4 +80,28 @@ func (e *Engine) Run(addr string) (err error) {
 	//	fmt.Println(k, v)
 	//}
 	return http.ListenAndServe(addr, e)
+}
+
+func (g *RouterGroup) Static(relativePath, root string) {
+	handler := g.createStaticHandler(relativePath, http.Dir(root))
+	urlPattern := path.Join(relativePath, "/*filepath")
+	// Register GET handlers
+	g.GET(urlPattern, handler)
+}
+
+// 创建静态文件服务器 handler
+func (g *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
+	absolutePath := path.Join(g.prefix, relativePath)
+	log.Printf("abs: %s\n", absolutePath)
+	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
+	return func(c *Context) {
+		file := c.Param("filepath")
+		// Check if file exists and/or if we have permission to access it
+		if _, err := fs.Open(file); err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+
+		fileServer.ServeHTTP(c.Writer, c.Request)
+	}
 }

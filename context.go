@@ -97,6 +97,6 @@ func (c *Context) Param(key string) string {
 }
 
 func (c *Context) Fail(code int, err string) {
-	c.index = len(c.handlers) // 直接将索引移至最后
+	c.index = len(c.handlers) // 直接将索引移至最后 TODO: 感觉 len(c.handlers) - 1 即可
 	c.JSON(code, H{"message": err})
 }
