@@ -95,10 +95,16 @@ func (r *router) handle(c *Context) {
 		log.Printf("Method: %s\tPattern: %s\tPath: %s\n", c.Method, n.pattern, c.Path)
 		c.Params = params
 		key := c.Method + "-" + n.pattern
-		r.handlers[key](c)
+		//r.handlers[key](c)
+		c.handlers = append(c.handlers, r.handlers[key])
 	} else {
 		// print route
 		log.Printf("NotFound Method: %s\tPath: %s\n", c.Method, c.Path)
-		c.String(http.StatusNotFound, "404 Not Found: %s\n", c.Path)
+		//c.String(http.StatusNotFound, "404 Not Found: %s\n", c.Path)
+		c.handlers = append(c.handlers, func(c *Context) {
+			c.String(http.StatusNotFound, "404 NOT FOUND: %s\n", c.Path)
+		})
 	}
+
+	c.Next()
 }

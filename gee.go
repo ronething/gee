@@ -8,6 +8,7 @@ package gee
 import (
 	"log"
 	"net/http"
+	"strings"
 )
 
 type HandlerFunc func(c *Context)
@@ -41,6 +42,10 @@ func (g *RouterGroup) Group(prefix string) *RouterGroup {
 	return newGroup
 }
 
+func (g *RouterGroup) Use(middlewares ...HandlerFunc) {
+	g.middlewares = append(g.middlewares, middlewares...)
+}
+
 func (g *RouterGroup) addRoute(method, comp string, handler HandlerFunc) {
 	pattern := g.prefix + comp
 	log.Printf("Route %4s - %s", method, pattern)
@@ -57,7 +62,15 @@ func (g *RouterGroup) POST(pattern string, handler HandlerFunc) {
 }
 
 func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	var middlewares []HandlerFunc
+	// 将各个与请求路径前缀相同的 group 的 middlewares 加入其中
+	for _, group := range e.groups {
+		if strings.HasPrefix(r.URL.Path, group.prefix) {
+			middlewares = append(middlewares, group.middlewares...)
+		}
+	}
 	c := newContext(w, r)
+	c.handlers = middlewares
 	e.router.handle(c)
 }
 
