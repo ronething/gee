@@ -6,6 +6,7 @@
 package gee
 
 import (
+	"html/template"
 	"log"
 	"net/http"
 	"path"
@@ -18,6 +19,9 @@ type Engine struct {
 	*RouterGroup
 	router *router
 	groups []*RouterGroup // store all groups
+
+	htmlTemplates *template.Template
+	funcMap       template.FuncMap
 }
 
 type RouterGroup struct {
@@ -31,6 +35,14 @@ func New() *Engine {
 	engine.RouterGroup = &RouterGroup{engine: engine}
 	engine.groups = []*RouterGroup{engine.RouterGroup}
 	return engine
+}
+
+func (e *Engine) SetFuncMap(funcMap template.FuncMap) {
+	e.funcMap = funcMap
+}
+
+func (e *Engine) LoadHTMLGlob(pattern string) {
+	e.htmlTemplates = template.Must(template.New("").Funcs(e.funcMap).ParseGlob(pattern))
 }
 
 func (g *RouterGroup) Group(prefix string) *RouterGroup {
@@ -72,6 +84,7 @@ func (e *Engine) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 	c := newContext(w, r)
 	c.handlers = middlewares
+	c.engine = e
 	e.router.handle(c)
 }
 
@@ -91,8 +104,8 @@ func (g *RouterGroup) Static(relativePath, root string) {
 
 // 创建静态文件服务器 handler
 func (g *RouterGroup) createStaticHandler(relativePath string, fs http.FileSystem) HandlerFunc {
-	absolutePath := path.Join(g.prefix, relativePath)
-	log.Printf("abs: %s\n", absolutePath)
+	absolutePath := path.Join(g.prefix, relativePath) // absolutePath: /asserts
+	// http.StripPrefix 用法: https://studygolang.com/articles/9197
 	fileServer := http.StripPrefix(absolutePath, http.FileServer(fs))
 	return func(c *Context) {
 		file := c.Param("filepath")
