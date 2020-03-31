@@ -30,6 +30,13 @@ type RouterGroup struct {
 	engine      *Engine       // all groups share a Engine instance
 }
 
+// Default use Logger() & Recovery middlewares
+func Default() *Engine {
+	engine := New()
+	engine.Use(Recovery(), Logger())
+	return engine
+}
+
 func New() *Engine {
 	engine := &Engine{router: newRouter()}
 	engine.RouterGroup = &RouterGroup{engine: engine}
